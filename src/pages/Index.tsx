@@ -2,7 +2,11 @@ import { useState } from "react";
 import HeroSection from "@/components/HeroSection";
 import RecipeForm from "@/components/RecipeForm";
 import RecipeDisplay from "@/components/RecipeDisplay";
+import AuthPage from "@/components/AuthPage";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { LogOut, User } from "lucide-react";
 
 interface FormData {
   foodPreference: string;
@@ -77,7 +81,24 @@ type ViewState = 'hero' | 'form' | 'recipe';
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewState>('hero');
   const [recipe, setRecipe] = useState(mockRecipe);
+  const { user, loading, signOut } = useAuth();
   const { toast } = useToast();
+
+  // Show auth page if not authenticated
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage onSuccess={() => setCurrentView('hero')} />;
+  }
 
   const handleGetStarted = () => {
     setCurrentView('form');
@@ -102,6 +123,24 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* User menu */}
+      <div className="absolute top-4 right-4 z-10">
+        <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-lg p-2 shadow-soft">
+          <div className="flex items-center gap-2 text-sm">
+            <User className="h-4 w-4" />
+            <span className="text-muted-foreground">{user.email}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={signOut}
+            className="h-8 w-8 p-0"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
       {currentView === 'hero' && (
         <HeroSection onGetStarted={handleGetStarted} />
       )}
