@@ -14,7 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      recipes: {
+        Row: {
+          cook_time: number | null
+          created_at: string
+          description: string | null
+          difficulty: string | null
+          id: string
+          image_url: string | null
+          ingredients: string[]
+          instructions: string[]
+          is_public: boolean
+          prep_time: number | null
+          servings: number | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cook_time?: number | null
+          created_at?: string
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients: string[]
+          instructions: string[]
+          is_public?: boolean
+          prep_time?: number | null
+          servings?: number | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cook_time?: number | null
+          created_at?: string
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          instructions?: string[]
+          is_public?: boolean
+          prep_time?: number | null
+          servings?: number | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
