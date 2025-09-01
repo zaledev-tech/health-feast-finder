@@ -3,7 +3,9 @@ import HeroSection from "@/components/HeroSection";
 import RecipeForm from "@/components/RecipeForm";
 import RecipeDisplay from "@/components/RecipeDisplay";
 import AuthPage from "@/components/AuthPage";
+import ProfileSetup from "@/components/ProfileSetup";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
@@ -76,16 +78,17 @@ const mockRecipe = {
   allergenWarnings: ["Contains dairy (feta cheese - optional)"]
 };
 
-type ViewState = 'hero' | 'form' | 'recipe';
+type ViewState = 'hero' | 'form' | 'recipe' | 'profile-setup';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewState>('hero');
   const [recipe, setRecipe] = useState(mockRecipe);
   const { user, loading, signOut } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const { toast } = useToast();
 
-  // Show auth page if not authenticated
-  if (loading) {
+  // Show loading while checking auth and profile
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -96,8 +99,14 @@ const Index = () => {
     );
   }
 
+  // Show auth page if not authenticated
   if (!user) {
     return <AuthPage onSuccess={() => setCurrentView('hero')} />;
+  }
+
+  // Show profile setup if user doesn't have a complete profile
+  if (!profile || (!profile.full_name && currentView !== 'profile-setup')) {
+    return <ProfileSetup onComplete={() => setCurrentView('hero')} />;
   }
 
   const handleGetStarted = () => {
@@ -121,25 +130,36 @@ const Index = () => {
     setCurrentView('hero');
   };
 
+  const handleEditProfile = () => {
+    setCurrentView('profile-setup');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* User menu */}
-      <div className="absolute top-4 right-4 z-10">
-        <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-lg p-2 shadow-soft">
-          <div className="flex items-center gap-2 text-sm">
-            <User className="h-4 w-4" />
-            <span className="text-muted-foreground">{user.email}</span>
+      {currentView !== 'profile-setup' && (
+        <div className="absolute top-4 right-4 z-10">
+          <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-lg p-2 shadow-soft">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleEditProfile}
+              className="flex items-center gap-2 text-sm px-2"
+            >
+              <User className="h-4 w-4" />
+              <span className="text-muted-foreground">{profile?.full_name || user.email}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="h-8 w-8 p-0"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={signOut}
-            className="h-8 w-8 p-0"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
         </div>
-      </div>
+      )}
 
       {currentView === 'hero' && (
         <HeroSection onGetStarted={handleGetStarted} />
@@ -167,6 +187,10 @@ const Index = () => {
             <RecipeDisplay recipe={recipe} onNewRecipe={handleNewRecipe} />
           </div>
         </div>
+      )}
+      
+      {currentView === 'profile-setup' && (
+        <ProfileSetup onComplete={() => setCurrentView('hero')} />
       )}
     </div>
   );
