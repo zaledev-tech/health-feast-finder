@@ -14,6 +14,116 @@ export type Database = {
   }
   public: {
     Tables: {
+      allergies: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          severity_level: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          severity_level?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          severity_level?: string | null
+        }
+        Relationships: []
+      }
+      deficiencies: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          recommended_daily_amount: string | null
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          recommended_daily_amount?: string | null
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          recommended_daily_amount?: string | null
+          unit?: string | null
+        }
+        Relationships: []
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredients: {
+        Row: {
+          category: string | null
+          common_allergens: string[] | null
+          created_at: string
+          id: string
+          name: string
+          nutrition_per_100g: Json | null
+        }
+        Insert: {
+          category?: string | null
+          common_allergens?: string[] | null
+          created_at?: string
+          id?: string
+          name: string
+          nutrition_per_100g?: Json | null
+        }
+        Update: {
+          category?: string | null
+          common_allergens?: string[] | null
+          created_at?: string
+          id?: string
+          name?: string
+          nutrition_per_100g?: Json | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -46,6 +156,54 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      recipe_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_id: string
+          is_optional: boolean | null
+          preparation_notes: string | null
+          quantity: number | null
+          recipe_id: string
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          is_optional?: boolean | null
+          preparation_notes?: string | null
+          quantity?: number | null
+          recipe_id: string
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          is_optional?: boolean | null
+          preparation_notes?: string | null
+          quantity?: number | null
+          recipe_id?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recipes: {
         Row: {
@@ -100,6 +258,160 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      shopping_list_items: {
+        Row: {
+          created_at: string
+          custom_item_name: string | null
+          id: string
+          ingredient_id: string | null
+          is_purchased: boolean | null
+          notes: string | null
+          quantity: number | null
+          shopping_list_id: string
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          custom_item_name?: string | null
+          id?: string
+          ingredient_id?: string | null
+          is_purchased?: boolean | null
+          notes?: string | null
+          quantity?: number | null
+          shopping_list_id: string
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          custom_item_name?: string | null
+          id?: string
+          ingredient_id?: string | null
+          is_purchased?: boolean | null
+          notes?: string | null
+          quantity?: number | null
+          shopping_list_id?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_list_items_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_list_items_shopping_list_id_fkey"
+            columns: ["shopping_list_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_lists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_completed: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_allergies: {
+        Row: {
+          allergy_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          severity: string | null
+          user_id: string
+        }
+        Insert: {
+          allergy_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          severity?: string | null
+          user_id: string
+        }
+        Update: {
+          allergy_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          severity?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_allergies_allergy_id_fkey"
+            columns: ["allergy_id"]
+            isOneToOne: false
+            referencedRelation: "allergies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_deficiencies: {
+        Row: {
+          created_at: string
+          deficiency_id: string
+          diagnosed_date: string | null
+          id: string
+          notes: string | null
+          severity: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deficiency_id: string
+          diagnosed_date?: string | null
+          id?: string
+          notes?: string | null
+          severity?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deficiency_id?: string
+          diagnosed_date?: string | null
+          id?: string
+          notes?: string | null
+          severity?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_deficiencies_deficiency_id_fkey"
+            columns: ["deficiency_id"]
+            isOneToOne: false
+            referencedRelation: "deficiencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
