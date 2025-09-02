@@ -207,51 +207,66 @@ export type Database = {
       }
       recipes: {
         Row: {
+          allergen_warnings: string[] | null
           cook_time: number | null
           created_at: string
+          cuisine_type: string | null
           description: string | null
+          dietary_preferences: Json | null
           difficulty: string | null
           id: string
           image_url: string | null
           ingredients: string[]
           instructions: string[]
           is_public: boolean
+          nutrition_info: Json | null
           prep_time: number | null
           servings: number | null
+          shopping_list: string[] | null
           tags: string[] | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          allergen_warnings?: string[] | null
           cook_time?: number | null
           created_at?: string
+          cuisine_type?: string | null
           description?: string | null
+          dietary_preferences?: Json | null
           difficulty?: string | null
           id?: string
           image_url?: string | null
           ingredients: string[]
           instructions: string[]
           is_public?: boolean
+          nutrition_info?: Json | null
           prep_time?: number | null
           servings?: number | null
+          shopping_list?: string[] | null
           tags?: string[] | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          allergen_warnings?: string[] | null
           cook_time?: number | null
           created_at?: string
+          cuisine_type?: string | null
           description?: string | null
+          dietary_preferences?: Json | null
           difficulty?: string | null
           id?: string
           image_url?: string | null
           ingredients?: string[]
           instructions?: string[]
           is_public?: boolean
+          nutrition_info?: Json | null
           prep_time?: number | null
           servings?: number | null
+          shopping_list?: string[] | null
           tags?: string[] | null
           title?: string
           updated_at?: string

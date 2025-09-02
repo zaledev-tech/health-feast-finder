@@ -138,6 +138,10 @@ serve(async (req) => {
       throw new Error('Invalid JSON response from AI');
     }
 
+    // Parse cook time to extract number (convert "25 minutes" to 25)
+    const cookTimeMatch = recipe.cookTime?.toString().match(/(\d+)/);
+    const cookTimeMinutes = cookTimeMatch ? parseInt(cookTimeMatch[1]) : null;
+
     // Save the recipe to the database
     const { data: savedRecipe, error: saveError } = await supabaseClient
       .from('recipes')
@@ -145,7 +149,7 @@ serve(async (req) => {
         user_id: user.id,
         title: recipe.title,
         description: recipe.description,
-        cook_time: recipe.cookTime,
+        cook_time: cookTimeMinutes,
         servings: recipe.servings,
         difficulty: recipe.difficulty,
         ingredients: recipe.ingredients,
