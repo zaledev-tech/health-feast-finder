@@ -9,6 +9,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FormData {
   foodPreference: string;
@@ -113,17 +114,42 @@ const Index = () => {
     setCurrentView('form');
   };
 
-  const handleFormSubmit = (formData: FormData) => {
-    // Here you would integrate with Spoonacular API and YouTube API
-    toast({
-      title: "Recipe Generated!",
-      description: "Your personalized healthy recipe is ready.",
-    });
-    
-    // For now, we'll use mock data
-    // TODO: Replace with actual API integration
-    setRecipe(mockRecipe);
-    setCurrentView('recipe');
+  const handleFormSubmit = async (formData: FormData) => {
+    try {
+      toast({
+        title: "Generating Recipe...",
+        description: "Creating your personalized healthy recipe.",
+      });
+
+      const { data, error } = await supabase.functions.invoke('generate-recipe', {
+        body: formData
+      });
+
+      if (error) {
+        console.error('Recipe generation error:', error);
+        toast({
+          title: "Generation Failed",
+          description: "Failed to generate recipe. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Recipe Generated!",
+        description: "Your personalized healthy recipe is ready.",
+      });
+      
+      setRecipe(data);
+      setCurrentView('recipe');
+    } catch (error) {
+      console.error('Recipe generation error:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate recipe. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleNewRecipe = () => {
