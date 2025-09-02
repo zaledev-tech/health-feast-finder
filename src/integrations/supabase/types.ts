@@ -131,6 +131,9 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_public: boolean | null
+          last_login_at: string | null
+          login_count: number | null
           updated_at: string
           user_id: string
           username: string | null
@@ -141,6 +144,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_public?: boolean | null
+          last_login_at?: string | null
+          login_count?: number | null
           updated_at?: string
           user_id: string
           username?: string | null
@@ -151,6 +157,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_public?: boolean | null
+          last_login_at?: string | null
+          login_count?: number | null
           updated_at?: string
           user_id?: string
           username?: string | null
@@ -271,6 +280,36 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          created_at: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -433,7 +472,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      log_security_event: {
+        Args: {
+          p_event_data?: Json
+          p_event_type: string
+          p_ip_address?: unknown
+          p_user_agent?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
