@@ -18,6 +18,88 @@ interface RecipeRequest {
   dietaryRestrictions: string;
 }
 
+// Input validation and sanitization functions
+function sanitizeInput(input: string, maxLength: number = 500): string {
+  if (!input || typeof input !== 'string') {
+    return '';
+  }
+  
+  // Remove HTML tags and scripts
+  const cleaned = input
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '')
+    .trim();
+  
+  // Limit length
+  return cleaned.substring(0, maxLength);
+}
+
+function validateRecipeRequest(request: RecipeRequest): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  // Validate food preference
+  if (!request.foodPreference || request.foodPreference.length === 0) {
+    errors.push('Food preference is required');
+  } else if (request.foodPreference.length > 100) {
+    errors.push('Food preference must be less than 100 characters');
+  }
+  
+  // Validate age
+  const age = parseInt(request.age);
+  if (!age || age < 1 || age > 120) {
+    errors.push('Age must be between 1 and 120');
+  }
+  
+  // Validate arrays
+  if (request.allergies && request.allergies.length > 20) {
+    errors.push('Too many allergies specified (max 20)');
+  }
+  
+  if (request.deficiencies && request.deficiencies.length > 20) {
+    errors.push('Too many deficiencies specified (max 20)');
+  }
+  
+  // Validate strings
+  if (request.cuisine && request.cuisine.length > 50) {
+    errors.push('Cuisine must be less than 50 characters');
+  }
+  
+  if (request.dietaryRestrictions && request.dietaryRestrictions.length > 200) {
+    errors.push('Dietary restrictions must be less than 200 characters');
+  }
+  
+  return { isValid: errors.length === 0, errors };
+}
+
+// Rate limiting storage (in-memory for simplicity)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(userId: string): { allowed: boolean; remaining: number; resetTime: number } {
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 minute
+  const maxRequests = 5;
+  
+  const key = userId;
+  const userLimit = rateLimitStore.get(key);
+  
+  if (!userLimit || now > userLimit.resetTime) {
+    // Reset or create new limit
+    rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+    return { allowed: true, remaining: maxRequests - 1, resetTime: now + windowMs };
+  }
+  
+  if (userLimit.count >= maxRequests) {
+    return { allowed: false, remaining: 0, resetTime: userLimit.resetTime };
+  }
+  
+  userLimit.count++;
+  rateLimitStore.set(key, userLimit);
+  
+  return { allowed: true, remaining: maxRequests - userLimit.count, resetTime: userLimit.resetTime };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -186,12 +268,39 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in generate-recipe function:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Failed to generate recipe', 
-      details: error.message 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    
+    // Log security event for unexpected errors
+    try {
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user) {
+          await supabaseClient.rpc('log_security_event', {
+            p_user_id: user.id,
+            p_event_type: 'API_ERROR',
+            p_event_data: { endpoint: 'generate-recipe', error: error.message },
+            p_ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+            p_user_agent: req.headers.get('user-agent')
+          });
+        }
+      }
+    } catch (logError) {
+      console.error('Failed to log security event:', logError);
+    }
+    
+    // Return generic error message to prevent information disclosure
+    return new Response(
+      JSON.stringify({ error: 'An unexpected error occurred. Please try again later.' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });

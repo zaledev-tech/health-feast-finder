@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, Chrome } from "lucide-react";
+import { Mail, Lock, Chrome, Eye, EyeOff } from "lucide-react";
+import { validateEmail, validatePassword, ClientRateLimit } from '@/lib/validation';
+import { useSecurityMonitoring } from '@/hooks/useSecurityMonitoring';
 
 interface AuthPageProps {
   onSuccess: () => void;
@@ -19,7 +21,12 @@ const AuthPage = ({ onSuccess }: AuthPageProps) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [rateLimiter] = useState(() => new ClientRateLimit());
   const { toast } = useToast();
+  const { logAuthEvent, logSuspiciousActivity } = useSecurityMonitoring();
 
   useEffect(() => {
     // Check if user is already authenticated
@@ -44,13 +51,36 @@ const AuthPage = ({ onSuccess }: AuthPageProps) => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Rate limiting check
+    if (!rateLimiter.checkLimit('signup', 3, 300000)) { // 3 attempts per 5 minutes
+      const remainingTime = Math.ceil(rateLimiter.getRemainingTime('signup') / 1000);
+      setError(`Too many signup attempts. Please wait ${remainingTime} seconds.`);
+      logSuspiciousActivity('Signup rate limit exceeded', { email });
+      return;
+    }
+    
+    // Input validation
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setPasswordErrors(passwordValidation.errors);
+      setError('Password does not meet security requirements');
+      return;
+    }
+    
     if (password !== confirmPassword) {
-      setError("Passwords don't match");
+      setError('Passwords do not match');
       return;
     }
     
     setLoading(true);
-    setError("");
+    setError('');
+    setPasswordErrors([]);
     
     const redirectUrl = `${window.location.origin}/`;
     
@@ -65,8 +95,27 @@ const AuthPage = ({ onSuccess }: AuthPageProps) => {
     setLoading(false);
 
     if (error) {
-      setError(error.message);
+      console.error('Sign up error:', error);
+      
+      // Log failed signup attempt
+      logAuthEvent('SIGNUP_FAILED', { 
+        email, 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Provide user-friendly error messages
+      if (error.message.includes('already registered')) {
+        setError('An account with this email already exists. Please sign in instead.');
+      } else if (error.message.includes('weak password')) {
+        setError('Password is too weak. Please choose a stronger password.');
+      } else if (error.message.includes('invalid email')) {
+        setError('Please enter a valid email address.');
+      } else {
+        setError('Failed to create account. Please try again.');
+      }
     } else {
+      logAuthEvent('SIGNUP_SUCCESS', { email });
       toast({
         title: "Check your email",
         description: "We've sent you a confirmation link to complete your registration.",
@@ -76,6 +125,26 @@ const AuthPage = ({ onSuccess }: AuthPageProps) => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Rate limiting check
+    if (!rateLimiter.checkLimit('signin', 5, 300000)) { // 5 attempts per 5 minutes
+      const remainingTime = Math.ceil(rateLimiter.getRemainingTime('signin') / 1000);
+      setError(`Too many sign-in attempts. Please wait ${remainingTime} seconds.`);
+      logSuspiciousActivity('Signin rate limit exceeded', { email });
+      return;
+    }
+    
+    // Input validation
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    
+    if (!password || password.length < 6) {
+      setError('Please enter your password');
+      return;
+    }
+    
     setLoading(true);
     setError("");
 
@@ -87,7 +156,28 @@ const AuthPage = ({ onSuccess }: AuthPageProps) => {
     setLoading(false);
 
     if (error) {
-      setError(error.message);
+      console.error('Sign in error:', error);
+      
+      // Log failed signin attempt
+      logAuthEvent('LOGIN_FAILED', { 
+        email, 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Provide user-friendly error messages
+      if (error.message.includes('Invalid login credentials')) {
+        setError('Invalid email or password. Please check your credentials and try again.');
+      } else if (error.message.includes('Email not confirmed')) {
+        setError('Please confirm your email address before signing in. Check your inbox for a confirmation link.');
+      } else if (error.message.includes('too many requests')) {
+        setError('Too many failed attempts. Please wait a few minutes before trying again.');
+        logSuspiciousActivity('Multiple failed login attempts', { email });
+      } else {
+        setError('Sign in failed. Please try again.');
+      }
+    } else {
+      logAuthEvent('LOGIN_SUCCESS', { email });
     }
   };
 
@@ -223,15 +313,29 @@ const AuthPage = ({ onSuccess }: AuthPageProps) => {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
-                        type="password"
-                        placeholder="Create a password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Create a password (min 8 chars)"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 pr-10"
                         required
-                        minLength={6}
+                        minLength={8}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff /> : <Eye />}
+                      </button>
                     </div>
+                    {passwordErrors.length > 0 && (
+                      <div className="text-sm text-destructive space-y-1">
+                        {passwordErrors.map((error, index) => (
+                          <div key={index}>• {error}</div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirm Password</Label>
@@ -239,14 +343,21 @@ const AuthPage = ({ onSuccess }: AuthPageProps) => {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="confirm-password"
-                        type="password"
+                        type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 pr-10"
                         required
-                        minLength={6}
+                        minLength={8}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground"
+                      >
+                        {showConfirmPassword ? <EyeOff /> : <Eye />}
+                      </button>
                     </div>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
